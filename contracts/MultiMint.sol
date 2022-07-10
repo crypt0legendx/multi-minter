@@ -175,14 +175,16 @@ contract MultiMinter is Ownable {
         bytes calldata datacall
     ) public payable {
         uint256 totalMint = _numberOfTokens * _txCount;
-        uint256 remaining = maxSupply - NFT(saleAddress).totalSupply();
-        uint256 startGas = gasleft();
-        uint256 gasPerEach = 0;
+        uint256 remaining = maxSupply - NFT(saleAddress).totalSupply();        
 
         if (totalMint > remaining) {
             _txCount = remaining / _numberOfTokens;
         }
 
+
+        uint256 gasPerEach = 0;
+        uint256 startGas = gasleft();
+        
 
         for (uint256 i; i < _txCount; i++) {
 
