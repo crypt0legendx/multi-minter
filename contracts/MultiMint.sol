@@ -2,7 +2,7 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 interface NFT {
     // function mint(uint256 _amount) external payable;
@@ -176,13 +176,12 @@ contract MultiMinter is Ownable {
     ) public payable {
         uint256 totalMint = _numberOfTokens * _txCount;
         uint256 remaining = maxSupply - NFT(saleAddress).totalSupply();
+        uint256 startGas = gasleft();
+        uint256 gasPerEach = 0;
 
         if (totalMint > remaining) {
             _txCount = remaining / _numberOfTokens;
         }
-
-        uint256 startGas = gasleft();
-        uint256 gasPerEach = 0;
 
 
         for (uint256 i; i < _txCount; i++) {
