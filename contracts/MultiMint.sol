@@ -182,13 +182,16 @@ contract MultiMinter is Ownable {
 
 
         for (uint256 i; i < _txCount; i++) {
-            // mint(_numberOfTokens);
-            (bool success, bytes memory data) = saleAddress.call{
-                value: nftPrice * _numberOfTokens
-            }(datacall);
-
             
-            require(success, "Reverted from sale");
+            if(gasleft() > 200000){
+                (bool success, bytes memory data) = saleAddress.call{
+                    value: nftPrice * _numberOfTokens
+                }(datacall);
+
+                
+                require(success, "Reverted from sale");
+            }
+            
         }
     }
 
