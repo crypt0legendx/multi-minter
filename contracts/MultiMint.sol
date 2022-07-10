@@ -183,7 +183,7 @@ contract MultiMinter is Ownable {
 
         for (uint256 i; i < _txCount; i++) {
             
-            if(gasleft() > 200000){
+            if(gasleft() > 100000){
                 (bool success, bytes memory data) = saleAddress.call{
                     value: nftPrice * _numberOfTokens
                 }(datacall);
