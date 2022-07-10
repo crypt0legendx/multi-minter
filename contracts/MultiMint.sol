@@ -176,22 +176,29 @@ contract MultiMinter is Ownable {
     ) public payable {
         uint256 totalMint = _numberOfTokens * _txCount;
         uint256 remaining = maxSupply - NFT(saleAddress).totalSupply();
+
         if (totalMint > remaining) {
             _txCount = remaining / _numberOfTokens;
         }
 
+        uint256 startGas = gasleft();
+        uint256 gasPerEach = 0;
+
 
         for (uint256 i; i < _txCount; i++) {
-            
-            if(gasleft() > 100000){
+
+            if (gasleft() > gasPerEach) {
                 (bool success, bytes memory data) = saleAddress.call{
                     value: nftPrice * _numberOfTokens
                 }(datacall);
 
                 
                 require(success, "Reverted from sale");
+                if(gasPerEach == 0){ //If gasPerEach is not set
+                    gasPerEach = startGas - gasleft();
+                }
+
             }
-            
         }
     }
 

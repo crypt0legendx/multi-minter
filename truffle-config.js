@@ -11,7 +11,7 @@ module.exports = {
     rinkeby: {
       provider: () => new HDWalletProvider(
         privateKeys.split(','),
-        `https://rinkeby.infura.io/v3/23b8935c1649490bb448e80796e96581`
+        `https://rinkeby.infura.io/v3/0f9536f924a74193aa072528dae4be50`
       ),
       network_id: 4,
       confirmations: 2,

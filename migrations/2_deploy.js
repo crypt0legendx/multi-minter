@@ -1,5 +1,5 @@
-const TokenMinter = artifacts.require("TokenMinter");
+const MultiMinter = artifacts.require("MultiMinter");
 
 module.exports = function (deployer) {
-  deployer.deploy(TokenMinter);
+  deployer.deploy(MultiMinter);
 };
