@@ -361,7 +361,7 @@ contract MultiMinter is Ownable {
             );
     }
 
-    function _mintCloneInTx(cloneIndex, MintParams memory _info, bool deployed) private {
+    function _mintCloneInTx(uint256 cloneIndex, MintParams memory _info, bool deployed) private {
         
         if(deployed){
             for (uint256 j; j < _info.txPerClone; j++)            
