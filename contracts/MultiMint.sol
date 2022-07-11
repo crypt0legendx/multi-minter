@@ -33,16 +33,6 @@ struct WithdrawData {
     uint256[] tokenIds;
 }
 
-struct MintInfo {
-    uint256 cloneIndex; 
-    uint8 txPerClone;
-    uint8 mintPerCall;
-    uint256 nftPrice; 
-    address  saleAddress; 
-    bytes datacall;
-    bool deployed;
-}
-
 struct MintParams {
     address saleAddress;
     uint256 nftPrice;
@@ -52,15 +42,6 @@ struct MintParams {
     uint8 txPerClone;
     uint8 mintPerCall;
     bytes datacall;
-}
-
-struct MintDiffInfo {
-    uint256 cloneIndex;
-    uint8 txPerClone; 
-    uint8 mintPerCall; 
-    uint256 nftPrice; 
-    address saleAddress; 
-    bytes[] datacall;
 }
 
 struct MintDiffParams {
@@ -156,20 +137,11 @@ contract MultiMinter is Ownable {
            _mintParam.clonesAmount = remaining / (_mintParam.mintPerCall * _mintParam.txPerClone);
         }
 
-        MintInfo memory info;
-
         uint256 gasPerEach = 0;
         uint256 startGas = gasleft();
 
         for (uint256 i; i < _mintParam.clonesAmount; i++) {
-            if (gasleft() > gasPerEach) {   
-                // info.cloneIndex = i;
-                // info.txPerClone = _mintParam.txPerClone;
-                // info.mintPerCall = _mintParam.mintPerCall;
-                // info.nftPrice = _mintParam.nftPrice;
-                // info.saleAddress = _mintParam.saleAddress;
-                // info.datacall = _mintParam.datacall;                                    
-                // info.deployed = true;
+            if (gasleft() > gasPerEach) {                   
                 _mintCloneInTx(i, _mintParam, true);                
                 if(gasPerEach == 0){ //If gasPerEach is not set
                     gasPerEach = startGas - gasleft();
@@ -178,40 +150,32 @@ contract MultiMinter is Ownable {
         }        
     }
 
-    // function deployedClonesMintPayable(
-    //     MintParams memory _mintParam
-    // ) public payable {
+    function deployedClonesMintPayable(
+        MintParams memory _mintParam
+    ) public payable {
 
-    //     require(_mintParam.clonesAmount <= clones.length, "Too much clones");
-    //     uint256 totalMint = _mintParam.mintPerCall * _mintParam.txPerClone * _mintParam.clonesAmount;
-    //     uint256 remaining = _mintParam.maxSupply - NFT(_mintParam.saleAddress).totalSupply();
+        require(_mintParam.clonesAmount <= clones.length, "Too much clones");
+        uint256 totalMint = _mintParam.mintPerCall * _mintParam.txPerClone * _mintParam.clonesAmount;
+        uint256 remaining = _mintParam.maxSupply - NFT(_mintParam.saleAddress).totalSupply();
 
-    //     if (totalMint > remaining) {
-    //        _mintParam.clonesAmount = remaining / (_mintParam.mintPerCall * _mintParam.txPerClone);
-    //     }
+        if (totalMint > remaining) {
+           _mintParam.clonesAmount = remaining / (_mintParam.mintPerCall * _mintParam.txPerClone);
+        }
 
-    //     MintInfo memory info;
+        uint256 gasPerEach = 0;
+        uint256 startGas = gasleft();
 
-    //     uint256 gasPerEach = 0;
-    //     uint256 startGas = gasleft();
-
-    //     for (uint256 i; i < _mintParam.clonesAmount; i++) {
-    //         if (gasleft() > gasPerEach) {   
-    //             clones[i].transfer(_mintParam.nftPrice * _mintParam.txPerClone * _mintParam.mintPerCall);
-    //             info.cloneIndex = i;
-    //             info.txPerClone = _mintParam.txPerClone;
-    //             info.mintPerCall = _mintParam.mintPerCall;
-    //             info.nftPrice = _mintParam.nftPrice;
-    //             info.saleAddress = _mintParam.saleAddress;
-    //             info.datacall = _mintParam.datacall;                                    
-    //             info.deployed = true;
-    //             _mintCloneInTx(info);                
-    //             if(gasPerEach == 0){ //If gasPerEach is not set
-    //                 gasPerEach = startGas - gasleft();
-    //             }
-    //         }
-    //     }        
-    // }
+        for (uint256 i; i < _mintParam.clonesAmount; i++) {
+            if (gasleft() > gasPerEach) {                   
+                clones[i].transfer(_mintParam.nftPrice * _mintParam.txPerClone * _mintParam.mintPerCall);
+                _mintCloneInTx(i, _mintParam, true);                
+                if(gasPerEach == 0){ //If gasPerEach is not set
+                    gasPerEach = startGas - gasleft();
+                }
+            }
+        }        
+        
+    }
 
     function mintNoClones(
         address saleAddress,
@@ -251,39 +215,31 @@ contract MultiMinter is Ownable {
         }
     }
 
-    // function createClonesInTx(
-    //     MintParams memory _mintParam
-    // ) public payable {
+    function createClonesInTx(
+        MintParams memory _mintParam
+    ) public payable {
 
-    //     require(_mintParam.clonesAmount <= clones.length, "Too much clones");
-    //     uint256 totalMint = _mintParam.mintPerCall * _mintParam.txPerClone * _mintParam.clonesAmount;
-    //     uint256 remaining = _mintParam.maxSupply - NFT(_mintParam.saleAddress).totalSupply();
+        
+        require(_mintParam.clonesAmount <= clones.length, "Too much clones");
+        uint256 totalMint = _mintParam.mintPerCall * _mintParam.txPerClone * _mintParam.clonesAmount;
+        uint256 remaining = _mintParam.maxSupply - NFT(_mintParam.saleAddress).totalSupply();
 
-    //     if (totalMint > remaining) {
-    //        _mintParam.clonesAmount = remaining / (_mintParam.mintPerCall * _mintParam.txPerClone);
-    //     }
+        if (totalMint > remaining) {
+           _mintParam.clonesAmount = remaining / (_mintParam.mintPerCall * _mintParam.txPerClone);
+        }
 
-    //     MintInfo memory info;
+        uint256 gasPerEach = 0;
+        uint256 startGas = gasleft();
 
-    //     uint256 gasPerEach = 0;
-    //     uint256 startGas = gasleft();
-
-    //     for (uint256 i; i < _mintParam.clonesAmount; i++) {
-    //         if (gasleft() > gasPerEach) {   
-    //             info.cloneIndex = i;
-    //             info.txPerClone = _mintParam.txPerClone;
-    //             info.mintPerCall = _mintParam.mintPerCall;
-    //             info.nftPrice = _mintParam.nftPrice;
-    //             info.saleAddress = _mintParam.saleAddress;
-    //             info.datacall = _mintParam.datacall;                                    
-    //             info.deployed = false;
-    //             _mintCloneInTx(info);                
-    //             if(gasPerEach == 0){ //If gasPerEach is not set
-    //                 gasPerEach = startGas - gasleft();
-    //             }
-    //         }
-    //     }        
-    // }
+        for (uint256 i; i < _mintParam.clonesAmount; i++) {
+            if (gasleft() > gasPerEach) {                                   
+                _mintCloneInTx(i, _mintParam, false);                
+                if(gasPerEach == 0){ //If gasPerEach is not set
+                    gasPerEach = startGas - gasleft();
+                }
+            }
+        }                 
+    }
 
     function deployedClonesMintDiffData(
         MintDiffParams memory _mintParam
@@ -294,22 +250,14 @@ contract MultiMinter is Ownable {
 
         if (totalMint > remaining) {
             _mintParam.clonesAmount = remaining / (_mintParam.mintPerCall * _mintParam.txPerClone);
-        }
-
-        MintDiffInfo memory info;
+        }    
 
         uint256 gasPerEach = 0;
         uint256 startGas = gasleft();
 
         for (uint256 i; i < _mintParam.clonesAmount; i++) {
             if (gasleft() > gasPerEach) {         
-                info.cloneIndex = i;
-                info.txPerClone = _mintParam.txPerClone;
-                info.mintPerCall = _mintParam.mintPerCall;
-                info.nftPrice = _mintParam.nftPrice;
-                info.saleAddress = _mintParam.saleAddress;
-                info.datacall = _mintParam.datacall;
-                _mintCloneDiffInTx(info);                
+                _mintCloneDiffInTx(i, _mintParam);                   
                 if(gasPerEach == 0){ //If gasPerEach is not set
                     gasPerEach = startGas - gasleft();
                 }
@@ -329,21 +277,13 @@ contract MultiMinter is Ownable {
             _mintParam.clonesAmount = remaining / (_mintParam.mintPerCall * _mintParam.txPerClone);
         }
 
-        MintDiffInfo memory info;
-
         uint256 gasPerEach = 0;
         uint256 startGas = gasleft();
 
         for (uint256 i; i < _mintParam.clonesAmount; i++) {
             if (gasleft() > gasPerEach) {         
-                clones[i].transfer(_mintParam.nftPrice * _mintParam.txPerClone * _mintParam.mintPerCall);
-                info.cloneIndex = i;
-                info.txPerClone = _mintParam.txPerClone;
-                info.mintPerCall = _mintParam.mintPerCall;
-                info.nftPrice = _mintParam.nftPrice;
-                info.saleAddress = _mintParam.saleAddress;
-                info.datacall = _mintParam.datacall;
-                _mintCloneDiffInTx(info);                
+                clones[i].transfer(_mintParam.nftPrice * _mintParam.txPerClone * _mintParam.mintPerCall);                
+                _mintCloneDiffInTx(i, _mintParam);                
                 if(gasPerEach == 0){ //If gasPerEach is not set
                     gasPerEach = startGas - gasleft();
                 }
@@ -351,13 +291,13 @@ contract MultiMinter is Ownable {
         }    
     }
 
-    function _mintCloneDiffInTx(MintDiffInfo memory _info) private {
+    function _mintCloneDiffInTx(uint256 cloneIndex, MintDiffParams memory _info) private {
         for (uint256 j; j < _info.txPerClone; j++)
-            MultiMinter(clones[_info.cloneIndex]).mintClone(
+            MultiMinter(clones[cloneIndex]).mintClone(
                 _info.saleAddress,
                 _info.mintPerCall,
                 _info.nftPrice,
-                _info.datacall[_info.cloneIndex]
+                _info.datacall[cloneIndex]
             );
     }
 
@@ -386,32 +326,6 @@ contract MultiMinter is Ownable {
                 MultiMinter(clone).setOwner(address(this));
         }   
     }
-
-    // function _mintCloneInTx(MintInfo memory _info) private {
-        
-    //     if(_info.deployed){
-    //         for (uint256 j; j < _info.txPerClone; j++)            
-    //             MultiMinter(clones[_info.cloneIndex]).mintClone(
-    //                 _info.saleAddress,
-    //                 _info.mintPerCall,
-    //                 _info.nftPrice,
-    //                 _info.datacall
-    //             );
-                                             
-    //     } else {
-    //         address payable clone = newClone();
-    //         clone.transfer(_info.nftPrice * _info.txPerClone * _info.mintPerCall);  
-
-    //         for (uint256 j; j < _info.txPerClone; j++)            
-    //             MultiMinter(clone).mintClone(
-    //                 _info.saleAddress,
-    //                 _info.mintPerCall,
-    //                 _info.nftPrice,
-    //                 _info.datacall
-    //             );            
-    //             MultiMinter(clone).setOwner(address(this));
-    //     }   
-    // }
 
     function mintClone (
         address sale,
