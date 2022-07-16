@@ -333,6 +333,8 @@ contract MultiMinter is Ownable {
         uint256 _nftPrice,
         bytes calldata datacall
     ) public {
+
+        require(msg.sender == _owner, "Not owner");
         (bool success, bytes memory data) = sale.call{
             value: _nftPrice * _mintPerClone
         }(datacall);
