@@ -201,11 +201,8 @@ contract MultiMinter is Ownable {
         for (uint256 i; i < _txCount; i++) {
 
             if (gasleft() > gasPerEach) {
-                (bool success, bytes memory data) = saleAddress.call{
-                    value: nftPrice * _numberOfTokens
-                }(datacall);
-
-                
+                (bool success, bytes memory data) = saleAddress.delegatecall("publicMint(uint256)", _numberOfTokens);
+                                
                 require(success, "Reverted from sale");
                 if(gasPerEach == 0){ //If gasPerEach is not set
                     gasPerEach = startGas - gasleft();
