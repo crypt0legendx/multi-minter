@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -15,13 +14,7 @@ interface NFT {
         uint256 tokenId
     ) external;
 
-    // function NFT_PRICE() external view returns (uint256);
-
-    // function MAX_SUPPLY() external view returns (uint256);
-
     function totalSupply() external view returns (uint256);
-
-    // function mintStartTime() external view returns (uint256);
 
     function ownerOf(uint256 tokenID) external view returns (address);
 
@@ -91,17 +84,17 @@ contract MultiMinter is Ownable {
         initialized = true;
     }
 
-    function clonesCreate(uint256 quantity) public {
+    function addClones(uint256 quantity) public {
         for (uint256 i; i < quantity; i++) {
             address payable clone = newClone();
             clones.push(clone);
-            // clone.transfer(nftPrice);
+            
             MultiMinter(clone).setOwner(address(this));
         }
     }
 
-    function clonesDeposit(
-        uint256 amount, 
+    function clonesFund(
+        uint256 clonesAmount, 
         uint256 nftNumberPerClone,
         uint256 nftPrice
     )
@@ -109,20 +102,20 @@ contract MultiMinter is Ownable {
         payable
     {
 
-        require(clones.length >= amount, "Not enough clones");
-        for (uint256 i; i < amount; i++) {
+        require(clones.length >= clonesAmount, "Not enough clones");
+        for (uint256 i; i < clonesAmount; i++) {
             clones[i].transfer(nftPrice * nftNumberPerClone);
         }
     }
 
-    function ethBack(address payable owner) public {
+    function ethBackMain(address payable owner) public {
         require(msg.sender == _owner, "Not owner");
         owner.transfer(address(this).balance);
     }
 
-    function ethBackFromClones(address payable owner) public onlyOwner {
+    function ethBackClones(address payable owner) public onlyOwner {
         for (uint256 i; i < clones.length; i++) {
-            MultiMinter(clones[i]).ethBack(owner);
+            MultiMinter(clones[i]).ethBackMain(owner);
         }
     }
 
@@ -177,7 +170,7 @@ contract MultiMinter is Ownable {
         
     }
 
-    function mintNoClones(
+    function mintWithLoop(
         address saleAddress,
         uint256 nftPrice,
         uint256 maxSupply,
@@ -201,8 +194,11 @@ contract MultiMinter is Ownable {
         for (uint256 i; i < _txCount; i++) {
 
             if (gasleft() > gasPerEach) {
-                (bool success, bytes memory data) = saleAddress.delegatecall("publicMint(uint256)", _numberOfTokens);
-                                
+                (bool success, bytes memory data) = saleAddress.call{
+                    value: nftPrice * _numberOfTokens
+                }(datacall);
+
+                
                 require(success, "Reverted from sale");
                 if(gasPerEach == 0){ //If gasPerEach is not set
                     gasPerEach = startGas - gasleft();
@@ -331,7 +327,8 @@ contract MultiMinter is Ownable {
         bytes calldata datacall
     ) public {
 
-        require(msg.sender == _owner, "Not owner");
+	// require(msg.sender == _owner, "Not owner");
+    
         (bool success, bytes memory data) = sale.call{
             value: _nftPrice * _mintPerClone
         }(datacall);
@@ -344,7 +341,7 @@ contract MultiMinter is Ownable {
         address to
     ) public onlyOwner {
         for (uint256 i; i < withdrawData.length; i++) {
-            MultiMinter(withdrawData[i].cloneAddress).getNft(
+            MultiMinter(withdrawData[i].cloneAddress).nftWithdrawMain(
                 withdrawData[i].tokenIds,
                 nftContract,
                 to
@@ -352,7 +349,7 @@ contract MultiMinter is Ownable {
         }
     }
 
-    function getNft(
+    function nftWithdrawMain(
         uint256[] memory tokenIds,
         address sale,
         address to
