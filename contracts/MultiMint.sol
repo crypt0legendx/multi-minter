@@ -1,13 +1,10 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 // import "hardhat/console.sol";
 
 interface NFT {
-    // function mint(uint256 _amount) external payable;
-
-    function setApprovalForAll(address operator, bool approved) external;
-
     function transferFrom(
         address from,
         address to,
@@ -15,15 +12,27 @@ interface NFT {
     ) external;
 
     function totalSupply() external view returns (uint256);
+}
 
-    function ownerOf(uint256 tokenID) external view returns (address);
-
-    function balanceOf(address proxy) external view returns (uint256);
+interface ERC1155 {
+  function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes calldata data
+    ) external;
 }
 
 struct WithdrawData {
     address payable cloneAddress;
     uint256[] tokenIds;
+}
+
+struct WithdrawData1155 {
+    address payable cloneAddress;
+    uint256 tokenId;
+    uint256 amount;
 }
 
 struct MintParams {
@@ -320,14 +329,191 @@ contract MultiMinter is Ownable {
         }   
     }
 
+    function deployedClonesMint1155(
+        MintParams memory _mintParam
+    ) public onlyOwner {
+        require(_mintParam.clonesAmount <= clones.length, "Too much clones");
+        uint256 totalMint = _mintParam.mintPerCall * _mintParam.txPerClone * _mintParam.clonesAmount;
+        uint256 remaining = _mintParam.maxSupply - NFT(_mintParam.saleAddress).totalSupply();
+        uint256 lastClone;
+        if (totalMint > remaining) {
+            _mintParam.clonesAmount = remaining / (_mintParam.mintPerCall * _mintParam.txPerClone);
+            lastClone = remaining % (_mintParam.mintPerCall * _mintParam.txPerClone);
+        }
+
+        uint256 gasPerEach = 0;
+        uint256 startGas = gasleft();
+
+        for (uint256 i; i < _mintParam.clonesAmount; i++) {
+            if (gasleft() > gasPerEach) {   
+                _mintCloneInTx(i, _mintParam, true);   
+                if(gasPerEach == 0){ //If gasPerEach is not set
+                    gasPerEach = startGas - gasleft();
+                }
+            }         
+        }
+        if (lastClone > 0 && gasleft() > gasPerEach) {
+            if (lastClone / _mintParam.mintPerCall > 0)
+                for (uint256 j; j < lastClone / _mintParam.mintPerCall; j++)
+                    MultiMinter(clones[_mintParam.clonesAmount]).mintClone(
+                        _mintParam.saleAddress,
+                        _mintParam.mintPerCall,
+                        _mintParam.nftPrice,
+                        _mintParam.datacall
+                    );
+            if (lastClone % _mintParam.mintPerCall > 0)
+                MultiMinter(clones[_mintParam.clonesAmount]).mintClone(
+                    _mintParam.saleAddress,
+                    lastClone % _mintParam.mintPerCall,
+                    _mintParam.nftPrice,
+                    _mintParam.datacall
+                );
+        }
+    }
+
+    function deployedClonesMintPayable1155(
+        MintParams memory _mintParam
+    ) public payable {
+        require(_mintParam.clonesAmount <= clones.length, "Too much clones");
+        uint256 totalMint = _mintParam.mintPerCall * _mintParam.txPerClone * _mintParam.clonesAmount;
+        uint256 remaining = _mintParam.maxSupply - NFT(_mintParam.saleAddress).totalSupply();
+        uint256 lastClone;
+        if (totalMint > remaining) {
+            _mintParam.clonesAmount = remaining / (_mintParam.mintPerCall * _mintParam.txPerClone);
+            lastClone = remaining % (_mintParam.mintPerCall * _mintParam.txPerClone);
+        }
+
+        uint256 gasPerEach = 0;
+        uint256 startGas = gasleft();
+
+        for (uint256 i; i < _mintParam.clonesAmount; i++) {
+            if (gasleft() > gasPerEach) {   
+                clones[i].transfer(_mintParam.nftPrice * _mintParam.txPerClone * _mintParam.mintPerCall);
+                _mintCloneInTx(i, _mintParam, true);   
+                if(gasPerEach == 0){ //If gasPerEach is not set
+                    gasPerEach = startGas - gasleft();
+                }
+            }         
+        }
+        if (lastClone > 0 && gasleft() > gasPerEach) {
+            clones[_mintParam.clonesAmount].transfer(_mintParam.nftPrice * lastClone);
+            if (lastClone / _mintParam.mintPerCall > 0)
+                for (uint256 j; j < lastClone / _mintParam.mintPerCall; j++)
+                    MultiMinter(clones[_mintParam.clonesAmount]).mintClone(
+                        _mintParam.saleAddress,
+                        _mintParam.mintPerCall,
+                        _mintParam.nftPrice,
+                        _mintParam.datacall
+                    );
+            if (lastClone % _mintParam.mintPerCall > 0)
+                MultiMinter(clones[_mintParam.clonesAmount]).mintClone(
+                    _mintParam.saleAddress,
+                    lastClone % _mintParam.mintPerCall,
+                    _mintParam.nftPrice,
+                    _mintParam.datacall
+                );
+        }        
+    }
+
+    function deployedClonesMintDiffData1155(
+        MintDiffParams memory _mintParam
+    ) public onlyOwner {
+        require(_mintParam.clonesAmount <= clones.length, "Too much clones");
+        uint256 totalMint = _mintParam.mintPerCall * _mintParam.txPerClone * _mintParam.clonesAmount;
+        uint256 remaining = _mintParam.maxSupply - NFT(_mintParam.saleAddress).totalSupply();
+        uint256 lastClone;
+
+        if (totalMint > remaining) {
+            _mintParam.clonesAmount = remaining / (_mintParam.mintPerCall * _mintParam.txPerClone);
+            lastClone = remaining % (_mintParam.mintPerCall * _mintParam.txPerClone);
+        }    
+
+        uint256 gasPerEach = 0;
+        uint256 startGas = gasleft();
+
+        for (uint256 i; i < _mintParam.clonesAmount; i++) {
+            if (gasleft() > gasPerEach) {         
+                _mintCloneDiffInTx(i, _mintParam);                   
+                if(gasPerEach == 0){ //If gasPerEach is not set
+                    gasPerEach = startGas - gasleft();
+                }
+            }
+        }
+
+        if (lastClone > 0 && gasleft() > gasPerEach) {
+            if (lastClone / _mintParam.mintPerCall > 0)
+                for (uint256 j; j < lastClone / _mintParam.mintPerCall; j++)
+                    MultiMinter(clones[_mintParam.clonesAmount]).mintClone(
+                        _mintParam.saleAddress,
+                        _mintParam.mintPerCall,
+                        _mintParam.nftPrice,
+                        _mintParam.datacall[_mintParam.clonesAmount]
+                    );
+            if (lastClone % _mintParam.mintPerCall > 0)
+                MultiMinter(clones[_mintParam.clonesAmount]).mintClone(
+                    _mintParam.saleAddress,
+                    lastClone % _mintParam.mintPerCall,
+                    _mintParam.nftPrice,
+                    _mintParam.datacall[_mintParam.clonesAmount]
+                );
+        }
+    }
+
+    function deployedClonesMintDiffDataPayable1155(
+        MintDiffParams memory _mintParam
+    ) public payable {
+
+        require(_mintParam.clonesAmount <= clones.length, "Too much clones");
+        uint256 totalMint = _mintParam.mintPerCall * _mintParam.txPerClone * _mintParam.clonesAmount;
+        uint256 remaining = _mintParam.maxSupply - NFT(_mintParam.saleAddress).totalSupply();
+        uint256 lastClone;
+
+        if (totalMint > remaining) {
+            _mintParam.clonesAmount = remaining / (_mintParam.mintPerCall * _mintParam.txPerClone);
+            lastClone = remaining % (_mintParam.mintPerCall * _mintParam.txPerClone);
+        }    
+
+        uint256 gasPerEach = 0;
+        uint256 startGas = gasleft();
+
+        for (uint256 i; i < _mintParam.clonesAmount; i++) {
+            if (gasleft() > gasPerEach) {       
+                clones[i].transfer(_mintParam.nftPrice * _mintParam.txPerClone * _mintParam.mintPerCall);                  
+                _mintCloneDiffInTx(i, _mintParam);                   
+                if(gasPerEach == 0){ //If gasPerEach is not set
+                    gasPerEach = startGas - gasleft();
+                }
+            }
+        }
+
+        if (lastClone > 0 && gasleft() > gasPerEach) {
+            clones[_mintParam.clonesAmount].transfer(_mintParam.nftPrice * lastClone);
+            if (lastClone / _mintParam.mintPerCall > 0)
+                for (uint256 j; j < lastClone / _mintParam.mintPerCall; j++)
+                    MultiMinter(clones[_mintParam.clonesAmount]).mintClone(
+                        _mintParam.saleAddress,
+                        _mintParam.mintPerCall,
+                        _mintParam.nftPrice,
+                        _mintParam.datacall[_mintParam.clonesAmount]
+                    );
+            if (lastClone % _mintParam.mintPerCall > 0)
+                MultiMinter(clones[_mintParam.clonesAmount]).mintClone(
+                    _mintParam.saleAddress,
+                    lastClone % _mintParam.mintPerCall,
+                    _mintParam.nftPrice,
+                    _mintParam.datacall[_mintParam.clonesAmount]
+                );
+        }   
+    }
+
+
+
     function mintClone (
         address sale,
         uint256 _mintPerClone,
         uint256 _nftPrice,
         bytes calldata datacall
     ) public {
-
-	// require(msg.sender == _owner, "Not owner");
     
         (bool success, bytes memory data) = sale.call{
             value: _nftPrice * _mintPerClone
@@ -356,10 +542,35 @@ contract MultiMinter is Ownable {
     ) public {
         require(msg.sender == _owner, "Not owner");
 
-        // NFT(sale).setApprovalForAll(to, true);
         for (uint256 i; i < tokenIds.length; i++) {
             NFT(sale).transferFrom(address(this), to, tokenIds[i]);
         }
+    }
+
+    function withdrawMassNft1155(
+      WithdrawData1155[] memory withdrawData,
+      address nftContract,
+      address to
+    ) public onlyOwner {
+      for (uint256 i; i < withdrawData.length; i++) {
+            MultiMinter(withdrawData[i].cloneAddress).withdrawNft1155(
+                withdrawData[i].tokenId,
+                nftContract,
+                to,
+                withdrawData[i].amount
+            );
+        }
+    }
+
+    function withdrawNft1155(
+        uint256 tokenId,
+        address sale,
+        address to,
+        uint256 amount
+    ) public {
+        require(msg.sender == _owner, "Not owner");
+
+        ERC1155(sale).safeTransferFrom(address(this), to, tokenId, amount, "0x");
     }
 
     receive() external payable {}
@@ -372,5 +583,16 @@ contract MultiMinter is Ownable {
     ) public virtual returns (bytes4) {
         // return this.onERC721Received.selector;
         return 0x150b7a02;
+    }
+
+    function onERC1155Received(
+        address,
+        address,
+        uint256,
+        uint256,
+        bytes calldata
+    ) public virtual returns (bytes4) {
+      // return this.onERC1155Received.selector;
+      return 0xf23a6e61;
     }
 }
