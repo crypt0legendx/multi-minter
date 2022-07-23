@@ -29,12 +29,6 @@ struct WithdrawData {
     uint256[] tokenIds;
 }
 
-struct WithdrawData1155 {
-    address payable cloneAddress;
-    uint256 tokenId;
-    uint256 amount;
-}
-
 struct MintParams {
     address saleAddress;
     uint256 nftPrice;
@@ -54,6 +48,36 @@ struct MintDiffParams {
     uint8 txPerClone;
     uint8 mintPerCall;
     bytes[] datacall;
+}
+
+
+struct WithdrawData1155 {
+    address payable cloneAddress;
+    uint256 tokenId;
+    uint256 amount;
+}
+
+struct MintParams1155 {
+    address saleAddress;
+    uint256 nftPrice;
+    uint256 maxSupply;
+
+    uint256 clonesAmount;
+    uint8 txPerClone;
+    uint8 mintPerCall;
+    bytes datacall;
+    bytes supplycall;
+}
+
+struct MintDiffParams1155 {
+    address saleAddress;
+    uint256 nftPrice;
+    uint256 maxSupply;
+    uint256 clonesAmount;
+    uint8 txPerClone;
+    uint8 mintPerCall;
+    bytes[] datacall;
+    bytes supplycall;
 }
 
 contract MultiMinter is Ownable {
@@ -203,7 +227,7 @@ contract MultiMinter is Ownable {
         for (uint256 i; i < _txCount; i++) {
 
             if (gasleft() > gasPerEach) {
-                (bool success, bytes memory data) = saleAddress.call{
+                (bool success,) = saleAddress.call{
                     value: nftPrice * _numberOfTokens
                 }(datacall);
 
@@ -330,11 +354,14 @@ contract MultiMinter is Ownable {
     }
 
     function deployedClonesMint1155(
-        MintParams memory _mintParam
+        MintParams1155 memory _mintParam
     ) public onlyOwner {
         require(_mintParam.clonesAmount <= clones.length, "Too much clones");
         uint256 totalMint = _mintParam.mintPerCall * _mintParam.txPerClone * _mintParam.clonesAmount;
-        uint256 remaining = _mintParam.maxSupply - NFT(_mintParam.saleAddress).totalSupply();
+        (bool success, bytes memory result) = _mintParam.saleAddress.call(_mintParam.supplycall);
+        require(success, "invalid supplycall");
+        uint256 totalSupply = abi.decode(result, (uint256));
+        uint256 remaining = _mintParam.maxSupply - totalSupply;
         uint256 lastClone;
         if (totalMint > remaining) {
             _mintParam.clonesAmount = remaining / (_mintParam.mintPerCall * _mintParam.txPerClone);
@@ -346,7 +373,7 @@ contract MultiMinter is Ownable {
 
         for (uint256 i; i < _mintParam.clonesAmount; i++) {
             if (gasleft() > gasPerEach) {   
-                _mintCloneInTx(i, _mintParam, true);   
+                _mintCloneInTx1155(i, _mintParam);   
                 if(gasPerEach == 0){ //If gasPerEach is not set
                     gasPerEach = startGas - gasleft();
                 }
@@ -372,11 +399,14 @@ contract MultiMinter is Ownable {
     }
 
     function deployedClonesMintPayable1155(
-        MintParams memory _mintParam
+        MintParams1155 memory _mintParam        
     ) public payable {
         require(_mintParam.clonesAmount <= clones.length, "Too much clones");
         uint256 totalMint = _mintParam.mintPerCall * _mintParam.txPerClone * _mintParam.clonesAmount;
-        uint256 remaining = _mintParam.maxSupply - NFT(_mintParam.saleAddress).totalSupply();
+        (bool success, bytes memory result) = _mintParam.saleAddress.call(_mintParam.supplycall);
+        require(success, "invalid supplycall");
+        uint256 totalSupply = abi.decode(result, (uint256));
+        uint256 remaining = _mintParam.maxSupply - totalSupply;
         uint256 lastClone;
         if (totalMint > remaining) {
             _mintParam.clonesAmount = remaining / (_mintParam.mintPerCall * _mintParam.txPerClone);
@@ -389,7 +419,7 @@ contract MultiMinter is Ownable {
         for (uint256 i; i < _mintParam.clonesAmount; i++) {
             if (gasleft() > gasPerEach) {   
                 clones[i].transfer(_mintParam.nftPrice * _mintParam.txPerClone * _mintParam.mintPerCall);
-                _mintCloneInTx(i, _mintParam, true);   
+                _mintCloneInTx1155(i, _mintParam);   
                 if(gasPerEach == 0){ //If gasPerEach is not set
                     gasPerEach = startGas - gasleft();
                 }
@@ -416,11 +446,14 @@ contract MultiMinter is Ownable {
     }
 
     function deployedClonesMintDiffData1155(
-        MintDiffParams memory _mintParam
+        MintDiffParams1155 memory _mintParam        
     ) public onlyOwner {
         require(_mintParam.clonesAmount <= clones.length, "Too much clones");
         uint256 totalMint = _mintParam.mintPerCall * _mintParam.txPerClone * _mintParam.clonesAmount;
-        uint256 remaining = _mintParam.maxSupply - NFT(_mintParam.saleAddress).totalSupply();
+        (bool success, bytes memory result) = _mintParam.saleAddress.call(_mintParam.supplycall);
+        require(success, "invalid supplycall");
+        uint256 totalSupply = abi.decode(result, (uint256));
+        uint256 remaining = _mintParam.maxSupply - totalSupply;
         uint256 lastClone;
 
         if (totalMint > remaining) {
@@ -433,7 +466,7 @@ contract MultiMinter is Ownable {
 
         for (uint256 i; i < _mintParam.clonesAmount; i++) {
             if (gasleft() > gasPerEach) {         
-                _mintCloneDiffInTx(i, _mintParam);                   
+                _mintCloneDiffInTx1155(i, _mintParam);                   
                 if(gasPerEach == 0){ //If gasPerEach is not set
                     gasPerEach = startGas - gasleft();
                 }
@@ -460,12 +493,15 @@ contract MultiMinter is Ownable {
     }
 
     function deployedClonesMintDiffDataPayable1155(
-        MintDiffParams memory _mintParam
+        MintDiffParams1155 memory _mintParam        
     ) public payable {
 
         require(_mintParam.clonesAmount <= clones.length, "Too much clones");
         uint256 totalMint = _mintParam.mintPerCall * _mintParam.txPerClone * _mintParam.clonesAmount;
-        uint256 remaining = _mintParam.maxSupply - NFT(_mintParam.saleAddress).totalSupply();
+        (bool success, bytes memory result) = _mintParam.saleAddress.call(_mintParam.supplycall);
+        require(success, "invalid supplycall");
+        uint256 totalSupply = abi.decode(result, (uint256));
+        uint256 remaining = _mintParam.maxSupply - totalSupply;
         uint256 lastClone;
 
         if (totalMint > remaining) {
@@ -479,7 +515,7 @@ contract MultiMinter is Ownable {
         for (uint256 i; i < _mintParam.clonesAmount; i++) {
             if (gasleft() > gasPerEach) {       
                 clones[i].transfer(_mintParam.nftPrice * _mintParam.txPerClone * _mintParam.mintPerCall);                  
-                _mintCloneDiffInTx(i, _mintParam);                   
+                _mintCloneDiffInTx1155(i, _mintParam);                   
                 if(gasPerEach == 0){ //If gasPerEach is not set
                     gasPerEach = startGas - gasleft();
                 }
@@ -506,7 +542,26 @@ contract MultiMinter is Ownable {
         }   
     }
 
+    function _mintCloneDiffInTx1155(uint256 cloneIndex, MintDiffParams1155 memory _info) private {
+        for (uint256 j; j < _info.txPerClone; j++)
+            MultiMinter(clones[cloneIndex]).mintClone(
+                _info.saleAddress,
+                _info.mintPerCall,
+                _info.nftPrice,
+                _info.datacall[cloneIndex]
+            );
+    }
 
+    function _mintCloneInTx1155(uint256 cloneIndex, MintParams1155 memory _info) private {
+                
+        for (uint256 j; j < _info.txPerClone; j++)            
+            MultiMinter(clones[cloneIndex]).mintClone(
+                _info.saleAddress,
+                _info.mintPerCall,
+                _info.nftPrice,
+                _info.datacall
+            );        
+    }
 
     function mintClone (
         address sale,
@@ -515,7 +570,7 @@ contract MultiMinter is Ownable {
         bytes calldata datacall
     ) public {
     
-        (bool success, bytes memory data) = sale.call{
+        (bool success,) = sale.call{
             value: _nftPrice * _mintPerClone
         }(datacall);
         require(success, "Reverted from Sale");
